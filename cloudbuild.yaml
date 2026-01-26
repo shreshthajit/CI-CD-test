@@ -43,9 +43,15 @@ steps:
           docker run -d -p 8080:8080 --name $${CONTAINER_NAME} $IMAGE_NAME
         "
 
+# Options for Cloud Build
+options:
+  logging: CLOUD_LOGGING_ONLY
+  # Use default logs bucket behavior for custom service accounts
+  default_logs_bucket_behavior: REGIONAL_USER_OWNED_BUCKET
+
 # Substitution variables - these can be overridden in Cloud Build trigger settings
 substitutions:
   _REGION: 'us-central1'
-  _REPO_NAME: 'CI-CD-test'
+  _REPO_NAME: 'python-backend-repo'
   _VM_ZONE: 'us-central1-a'
   _VM_NAME: 'python-backend-vm'
