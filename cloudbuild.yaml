@@ -1,0 +1,51 @@
+steps:
+  # 1. Build the Docker Image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/python-app:$SHORT_SHA'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/python-app:latest'
+      - '.'
+
+  # 2. Push to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/python-app:$SHORT_SHA'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/python-app:latest'
+
+  # 3. Deploy to VM (SSH and run Docker)
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Variables (Update these based on your Terraform output)
+        VM_ZONE="${_VM_ZONE}"
+        VM_NAME="${_VM_NAME}"
+        IMAGE_NAME="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/python-app:latest"
+        CONTAINER_NAME="python-backend"
+
+        # SSH into the VM and run deployment commands
+        gcloud compute ssh $VM_NAME --zone=$VM_ZONE --command="
+          # Stop existing container if it exists
+          if [ $(docker ps -aq -f name=$${CONTAINER_NAME}) ]; then
+            docker stop $${CONTAINER_NAME}
+            docker rm $${CONTAINER_NAME}
+          fi
+
+          # Pull the latest image
+          docker pull $IMAGE_NAME
+
+          # Run the new container
+          docker run -d -p 8080:8080 --name $${CONTAINER_NAME} $IMAGE_NAME
+        "
+
+# Substitution variables - these can be overridden in Cloud Build trigger settings
+substitutions:
+  _REGION: 'us-central1'
+  _REPO_NAME: 'CI-CD-test'
+  _VM_ZONE: 'us-central1-a'
+  _VM_NAME: 'python-backend-vm'
