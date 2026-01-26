@@ -22,15 +22,8 @@ steps:
     args:
       - '-c'
       - |
-        # Construct the full deployment command with image name inline
-        # This avoids Cloud Build parsing any $VAR patterns in the remote command
-        gcloud compute ssh ${_VM_NAME} --zone=${_VM_ZONE} --command="
-          if [ \$(docker ps -aq -f name=python-backend) ]; then
-            docker stop python-backend && docker rm python-backend
-          fi
-          docker pull ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/python-app:latest
-          docker run -d -p 8080:8080 --name python-backend ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/python-app:latest
-        "
+        # Deploy - construct image name inline and avoid all $ patterns except Cloud Build substitutions
+        gcloud compute ssh ${_VM_NAME} --zone=${_VM_ZONE} --command="docker stop python-backend 2>/dev/null || true; docker rm python-backend 2>/dev/null || true; docker pull ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/python-app:latest; docker run -d -p 8080:8080 --name python-backend ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/python-app:latest"
 
 # Options for Cloud Build
 options:
