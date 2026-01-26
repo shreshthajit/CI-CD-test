@@ -22,24 +22,19 @@ steps:
     args:
       - '-c'
       - |
-        # Construct image name using substitution variables
+        # Construct image name using Cloud Build substitution variables
         IMAGE_NAME="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/python-app:latest"
-        CONTAINER_NAME="python-backend"
-
         # SSH into the VM and run deployment commands
-        # Use eval to properly expand variables in the remote command
+        # Use $VAR syntax (not ${VAR}) for shell variables to avoid Cloud Build substitution parsing
         gcloud compute ssh ${_VM_NAME} --zone=${_VM_ZONE} --command="
-          CONTAINER_NAME=\"${CONTAINER_NAME}\"
-          IMAGE_NAME=\"${IMAGE_NAME}\"
-          # Stop existing container if it exists
-          if [ \$(docker ps -aq -f name=\${CONTAINER_NAME}) ]; then
-            docker stop \${CONTAINER_NAME}
-            docker rm \${CONTAINER_NAME}
+          CONTAINER_NAME='python-backend'
+          IMAGE_NAME='${IMAGE_NAME}'
+          if [ \$(docker ps -aq -f name=\$CONTAINER_NAME) ]; then
+            docker stop \$CONTAINER_NAME
+            docker rm \$CONTAINER_NAME
           fi
-          # Pull the latest image
-          docker pull \${IMAGE_NAME}
-          # Run the new container
-          docker run -d -p 8080:8080 --name \${CONTAINER_NAME} \${IMAGE_NAME}
+          docker pull \$IMAGE_NAME
+          docker run -d -p 8080:8080 --name \$CONTAINER_NAME \$IMAGE_NAME
         "
 
 # Options for Cloud Build
