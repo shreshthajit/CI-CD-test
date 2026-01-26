@@ -22,16 +22,16 @@ steps:
     args:
       - '-c'
       - |
-        # Build the image name using Cloud Build substitutions
+        # Build the image name using Cloud Build substitutions and expand it immediately
         IMG="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/python-app:latest"
-        # SSH and deploy - construct command with inline image name to avoid substitution parsing
+        # SSH and deploy - use expanded IMG variable to avoid Cloud Build parsing
         gcloud compute ssh ${_VM_NAME} --zone=${_VM_ZONE} --command="
           CN=python-backend
           if [ \$(docker ps -aq -f name=\$CN) ]; then
             docker stop \$CN && docker rm \$CN
           fi
-          docker pull ${IMG}
-          docker run -d -p 8080:8080 --name \$CN ${IMG}
+          docker pull $IMG
+          docker run -d -p 8080:8080 --name \$CN $IMG
         "
 
 # Options for Cloud Build
