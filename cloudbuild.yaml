@@ -1,20 +1,33 @@
 steps:
+  # 0. Convert repo name to lowercase (Docker requirement)
+  - name: 'bash'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Convert repo name to lowercase and export for next steps
+        REPO_LOWER=$(echo "${_REPO_NAME}" | tr '[:upper:]' '[:lower:]')
+        echo "REPO_LOWER=${REPO_LOWER}" >> /workspace/repo_env.txt
+        cat /workspace/repo_env.txt
+  
   # 1. Build the Docker Image
   - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
     args:
-      - 'build'
-      - '-t'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/python-app:$SHORT_SHA'
-      - '-t'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/python-app:latest'
-      - '.'
+      - '-c'
+      - |
+        source /workspace/repo_env.txt
+        docker build -t ${_REGION}-docker.pkg.dev/$PROJECT_ID/${REPO_LOWER}/python-app:$SHORT_SHA -t ${_REGION}-docker.pkg.dev/$PROJECT_ID/${REPO_LOWER}/python-app:latest .
 
   # 2. Push to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
     args:
-      - 'push'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/python-app:$SHORT_SHA'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/python-app:latest'
+      - '-c'
+      - |
+        source /workspace/repo_env.txt
+        docker push ${_REGION}-docker.pkg.dev/$PROJECT_ID/${REPO_LOWER}/python-app:$SHORT_SHA
+        docker push ${_REGION}-docker.pkg.dev/$PROJECT_ID/${REPO_LOWER}/python-app:latest
 
   # 3. Deploy to VM (SSH and run Docker)
   - name: 'gcr.io/cloud-builders/gcloud'
@@ -22,8 +35,9 @@ steps:
     args:
       - '-c'
       - |
-        # Deploy - construct image name inline and avoid all $ patterns except Cloud Build substitutions
-        gcloud compute ssh ${_VM_NAME} --zone=${_VM_ZONE} --command="docker stop python-backend 2>/dev/null || true; docker rm python-backend 2>/dev/null || true; docker pull ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/python-app:latest; docker run -d -p 8080:8080 --name python-backend ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/python-app:latest"
+        source /workspace/repo_env.txt
+        # Construct image name inline to avoid Cloud Build parsing
+        gcloud compute ssh ${_VM_NAME} --zone=${_VM_ZONE} --command="docker stop python-backend 2>/dev/null || true; docker rm python-backend 2>/dev/null || true; docker pull ${_REGION}-docker.pkg.dev/$PROJECT_ID/${REPO_LOWER}/python-app:latest; docker run -d -p 8080:8080 --name python-backend ${_REGION}-docker.pkg.dev/$PROJECT_ID/${REPO_LOWER}/python-app:latest"
 
 # Options for Cloud Build
 options:
