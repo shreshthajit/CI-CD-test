@@ -24,10 +24,11 @@ steps:
     args:
       - '-c'
       - |
-        # Build image path and use directly - construct inline to avoid Cloud Build parsing
-        REPO_LOW=$(echo "${_REPO_NAME}" | tr '[:upper:]' '[:lower:]')
-        IMG="${_REGION}-docker.pkg.dev/$PROJECT_ID/$REPO_LOW/python-app:latest"
-        gcloud compute ssh ${_VM_NAME} --zone=${_VM_ZONE} --command="docker stop python-backend 2>/dev/null || true; docker rm python-backend 2>/dev/null || true; docker pull $IMG; docker run -d -p 8080:8080 --name python-backend $IMG"
+        # Convert repo name to lowercase and construct image path inline
+        # Use $$ to escape shell variables from Cloud Build substitution
+        REPO_LOW=$$(echo "${_REPO_NAME}" | tr '[:upper:]' '[:lower:]')
+        IMAGE_FULL="${_REGION}-docker.pkg.dev/$PROJECT_ID/$${REPO_LOW}/python-app:latest"
+        gcloud compute ssh ${_VM_NAME} --zone=${_VM_ZONE} --command="docker stop python-backend 2>/dev/null || true; docker rm python-backend 2>/dev/null || true; docker pull $${IMAGE_FULL}; docker run -d -p 8080:8080 --name python-backend $${IMAGE_FULL}"
 
 # Options for Cloud Build
 options:

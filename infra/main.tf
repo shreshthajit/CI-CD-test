@@ -93,7 +93,26 @@ resource "google_project_iam_member" "cloudbuild_sa_service_account_user" {
 resource "google_service_account_iam_member" "cloudbuild_use_sa" {
   service_account_id = google_service_account.cloud_build_sa.name
   role               = "roles/iam.serviceAccountUser"
-  member             = "serviceAccount:${var.project_id}@cloudbuild.gserviceaccount.com"
+  member             = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
+}
+
+# Get project number for Cloud Build default service account
+data "google_project" "project" {
+  project_id = var.project_id
+}
+
+# Grant Cloud Build default service account Compute Instance Admin
+resource "google_project_iam_member" "cloudbuild_default_compute_admin" {
+  project = var.project_id
+  role    = "roles/compute.instanceAdmin.v1"
+  member  = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
+}
+
+# Grant Cloud Build default service account Service Account User role
+resource "google_project_iam_member" "cloudbuild_default_sa_user" {
+  project = var.project_id
+  role    = "roles/iam.serviceAccountUser"
+  member  = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
 }
 
 # Output the VM IP and Repo name
