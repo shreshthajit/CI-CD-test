@@ -46,12 +46,14 @@ resource "google_compute_instance" "vm_instance" {
   }
 
   # Install Docker on the VM using a startup script
+  # Enable OS Login for Cloud Build SSH access
   metadata = {
+    enable-oslogin = "TRUE"
     startup-script = <<-EOF
                   #!/bin/bash
                   apt-get update
                   apt-get install -y docker.io
-                  usermod -aG docker ${var.ssh_user}
+                  # Add Cloud Build service account to docker group
                   systemctl start docker
                   EOF
   }
@@ -112,6 +114,13 @@ resource "google_project_iam_member" "cloudbuild_default_compute_admin" {
 resource "google_project_iam_member" "cloudbuild_default_sa_user" {
   project = var.project_id
   role    = "roles/iam.serviceAccountUser"
+  member  = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
+}
+
+# Grant Cloud Build default service account OS Login Admin role (required for SSH)
+resource "google_project_iam_member" "cloudbuild_os_login_admin" {
+  project = var.project_id
+  role    = "roles/compute.osAdminLogin"
   member  = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
 }
 

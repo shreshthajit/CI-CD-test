@@ -28,7 +28,7 @@ steps:
         # Use $$ to escape shell variables from Cloud Build substitution
         REPO_LOW=$$(echo "${_REPO_NAME}" | tr '[:upper:]' '[:lower:]')
         IMAGE_FULL="${_REGION}-docker.pkg.dev/$PROJECT_ID/$${REPO_LOW}/python-app:latest"
-        gcloud compute ssh ${_VM_NAME} --zone=${_VM_ZONE} --command="docker stop python-backend 2>/dev/null || true; docker rm python-backend 2>/dev/null || true; docker pull $${IMAGE_FULL}; docker run -d -p 8080:8080 --name python-backend $${IMAGE_FULL}"
+        gcloud compute ssh ${_VM_NAME} --zone=${_VM_ZONE} --command="sudo gcloud auth configure-docker ${_REGION}-docker.pkg.dev --quiet; sudo docker stop python-backend 2>/dev/null || true; sudo docker rm python-backend 2>/dev/null || true; sudo docker pull $${IMAGE_FULL} && sudo docker run -d -p 8080:8080 --name python-backend $${IMAGE_FULL}"
 
 # Options for Cloud Build
 options:
